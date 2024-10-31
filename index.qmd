@@ -1,0 +1,7 @@
+---
+title: "Introduction"
+---
+
+Hello, my name is Mingrui Xu. I am a first year ScM student from the Department of Biostatistics at JHU. 
+
+![Image of me](IMG_8945.JPG){width=50%}

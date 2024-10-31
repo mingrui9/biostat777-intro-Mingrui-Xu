@@ -1,0 +1,150 @@
+---
+title: "Example Analysis"
+---
+
+
+# IMDB Top 1000 Movies Analysis
+![Cover Image](dataset-cover.jpg)
+
+## Question
+
+In this analysis, I aim to explore the IMDB top 1000 movies dataset to answer the following question:  
+**Which factors can affect the IMDB rating of movies?**
+
+::: {.callout-note icon=false}
+## Think
+Can you think of any possible factors that may impact the ratings of movies?
+:::
+
+
+## Intended Audience
+
+In this analysis, the intended audience whould be those people who love to watch movies and interested in learning about trends in popular movies.
+
+## Dataset
+
+The dataset used for this analysis is the IMDb top 1000 movies dataset, which includes information on movie titles, directors, genres, IMDb ratings, and more. You can find the original data and at [data sourse](harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows). And the data dictionary could be found here [data dictionary](https://www.kaggle.com/datasets/harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows/data). 
+
+## Data Analysis
+
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+imdb_data <- read.csv("imdb_top_1000.csv")
+
+filtered_movies <- imdb_data %>% 
+  select(Series_Title, Released_Year, Genre, Runtime, IMDB_Rating, Director, Gross) %>% 
+  mutate(
+    Gross = as.numeric(gsub(",", "", Gross)),
+    Runtime_Hours = as.numeric(sub(" min", "", Runtime)) / 60
+  ) %>%
+  separate_rows(Genre, sep = ",") %>% 
+  mutate(Genre = trimws(Genre)) %>%
+  mutate(
+    Released_Year = as.numeric(Released_Year),  
+    Decade = paste0((Released_Year %/% 10) * 10, "s") 
+  ) %>%
+  arrange(desc(IMDB_Rating))
+#View(filtered_movies)
+```
+
+Plot 1:
+Relationship between Runtime and IMDB Rating
+```{r}
+top50 <- filtered_movies %>%
+  head(50)
+ggplot(top50, aes(x = Runtime, y = IMDB_Rating)) +
+  geom_point(size = 3, color = "blue") +  
+  theme_minimal() +
+  labs(
+    title = "Relationship between Runtime and IMDB Rating",
+    x = "Runtime (minutes)",
+    y = "IMDB Rating"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+Plot 2: 
+Relationship between Released Year and IMDB Rating
+
+```{r}
+top50 <- top50 %>%
+  mutate(Decade = case_when(
+    Released_Year <= 1960 ~ "1960 and before",
+    Released_Year <= 1969 ~ "1960s",
+    Released_Year <= 1979 ~ "1970s",
+    Released_Year <= 1989 ~ "1980s",
+    Released_Year <= 1999 ~ "1990s",
+    Released_Year <= 2009 ~ "2000s",
+    Released_Year <= 2019 ~ "2010s",
+    Released_Year >= 2020 & Released_Year <= 2029 ~ "2020s"
+  ))
+
+avg_ratings_by_decade <- top50 %>%
+  group_by(Decade) %>%
+  summarise(Average_Rating = mean(IMDB_Rating, na.rm = TRUE))
+
+avg_ratings_by_decade$Decade <- factor(avg_ratings_by_decade$Decade, levels = c("1960 and before", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"))
+
+ggplot(avg_ratings_by_decade, aes(x = Decade, y = Average_Rating, group = 1)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue", size = 3) +
+  theme_minimal() +
+  labs(
+    title = "Average IMDb Rating by Decade",
+    x = "Decade",
+    y = "Average IMDb Rating"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+Plot 3: 
+Distribution of IMDb Ratings by Genre, Faceted by Decade
+```{r, fig.width=8, fig.height=12}
+ggplot(filtered_movies, aes(x = Decade, y = IMDB_Rating, fill = Genre)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) + 
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribution of IMDb Ratings by Genre, Faceted by Decade",
+    x = "Genre",
+    y = "IMDb Rating"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  
+    axis.title.x = element_text(margin = margin(t = 10)),
+    strip.text = element_text(size = 14, face = "bold"),
+    panel.spacing = unit(1, "lines")
+  ) +
+  facet_wrap(~ Genre, ncol = 3)  
+```
+
+
+
+::: {.callout-tip title="Rating of Movies by Genre"}
+Genre is indeed a factor that could influence the ratings of movies. 
+:::
+
+## Summary
+Plot 1 displays the relationship between movies' runtime and the IMDB ratings, which we could see the scatter plot seems to not have a specific pattern. Form plot 2, the histergram shows the IMDB rating by their released decades. We could see that there seem to be a decrease in the general trends with year increased. Plot 3 shows the distribution of IMDb ratings across different genres and decades, highlighting genre-specific trends in audience reception. Some genres, like Drama, tend to have consistently high ratings, while others, such as Comedy and Action, show more variability. We could also see the spread of ratings suggests changing audience preferences over time.
+
+
+::: {.column-margin}
+Does the result match your thinking from the beginning?
+:::
+
+
+
+Functions used: 
+
+- dplyr: select(), mutate(), arrange(), head()
+
+- tidyr: separate_rows()
+
+- ggplot2: ggplot(), aes(), geom_point(), geom_bar(),geom_boxplot(), theme_minimal(), labs(), theme(), facet_wrap()
